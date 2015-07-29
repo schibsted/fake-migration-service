@@ -118,7 +118,7 @@ fun locale(): String? {
 
 fun email(email: String): String {
     return when (fairy.baseProducer().randomInt(100)) {
-        in 0..80 -> email
+        in 0..90 -> email
         else -> "xxx" + email
     }
 }

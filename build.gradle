@@ -1,16 +1,28 @@
+group 'com.schibsted'
+version '1.0-SNAPSHOT'
 buildscript {
     repositories {
         mavenCentral()
+        jcenter()
     }
     dependencies {
         classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:0.12.1218'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.1'
     }
 }
 
-group 'com.schibsted'
-version '1.0-SNAPSHOT'
 
-apply plugin: "kotlin"
+apply plugin: 'kotlin'
+apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'application'
+
+mainClassName = 'com.schibsted.spt.identity.fakemigrationservice.FakemigrationservicePackage'
+
+task stage(dependsOn: ['clean', 'shadowJar'])
+
+shadowJar {
+    mergeServiceFiles()
+}
 
 repositories {
     mavenCentral()
@@ -24,3 +36,4 @@ dependencies {
 
     testCompile group: 'junit', name: 'junit', version: '4.11'
 }
+
