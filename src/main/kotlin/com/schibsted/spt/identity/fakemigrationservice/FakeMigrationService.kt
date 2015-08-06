@@ -52,7 +52,6 @@ data class User(
         val homePhone: String?,
         val photo: String?,
         val createdTime: Date?,
-        val status: String?,
         val timeZone: String?)
 
 fun maybeSleep() {
@@ -65,7 +64,7 @@ fun maybeSleep() {
 
 fun getPort(): Int {
     val port = System.getenv("PORT")
-    return Integer.parseInt(port ?: "9090")
+    return Integer.parseInt(port ?: "9091")
 }
 
 fun getAuth(): String {
@@ -140,6 +139,5 @@ fun newUser(email: String): User {
             phone,
             fairy.company().url(),
             Date.from(Instant.now()),
-            status(),
             timeZone())
 }
