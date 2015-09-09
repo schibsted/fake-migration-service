@@ -1,7 +1,21 @@
 language: java
 jdk:
 - oraclejdk8
-
 before_deploy:
 - ./gradlew shadowJar
 - ./deploy.sh
+notifications:
+  slack:
+    secure: bsxyFDA0Ts0UW0U2w9uA4ZFfdGmoeuDgXUz0o177RWGqeWJiN+rCnoUjCzaJN9MPJbqOFwbLE7Eg/8hg3/xR6C3x2r5eU6Apdlzry2IO33Mf135SNYkn1PfkMPw3kIXxfN58PySffusB7qDoodtMjVOGYQyBq+5OavD+7wFhizs=
+deploy:
+  provider: s3
+  access_key_id: AKIAI5HMJEH3NGIPPQUQ
+  secret_access_key:
+    secure: BZZ4blPX8Gafd3BFklCqAabWQbW+/XV/9xCTHjnoXNgtFOkq14HytprYAvnReGT8CBBhmNbpSKcU4LX1btwWHrvakBljxvhpJn9TXo/Jw4cgx1g3Vn0VN8H6b/iFag7DpCMhLjI9FSUfs2fR1btBxndsU0vHeyghYmZoPKpQr6k=
+  bucket: spid-repository-875588672045
+  skip_cleanup: true
+  local-dir: dist
+  upload-dir: application/front-fake-migration-service
+  on:
+    repo: spt-identity/fake-migration-service
+    branch: master
