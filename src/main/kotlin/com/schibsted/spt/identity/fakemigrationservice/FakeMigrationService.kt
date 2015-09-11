@@ -30,7 +30,9 @@ fun main(args: Array<String>) {
 
     }, { model -> gson.toJson(model) })
 
-    get("/healthcheck", {req, res -> "Healthy"})
+    get("/healthcheck", {req, res ->
+        res.type("application/json")
+        "{\"status\":\"ok\"}"})
 
 }
 
