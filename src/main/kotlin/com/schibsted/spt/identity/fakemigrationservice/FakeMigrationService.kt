@@ -32,7 +32,7 @@ fun main(args: Array<String>) {
 
     get("/healthcheck", {req, res ->
         res.type("application/json")
-        "{\"status\":\"ok\"}"})
+        """{"status":"ok"}"""})
 
 }
 
