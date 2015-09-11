@@ -30,6 +30,8 @@ fun main(args: Array<String>) {
 
     }, { model -> gson.toJson(model) })
 
+    get("/healthcheck", {req, res -> "Healthy"})
+
 }
 
 val gson = GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").create()
