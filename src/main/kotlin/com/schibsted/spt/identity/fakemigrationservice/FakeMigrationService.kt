@@ -10,7 +10,26 @@ import java.time.Instant
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import kotlin.text.Regex
 
+/**
+ * Implementation of a user data migration service returning fake data.
+ *
+ * The behaviour of the fake migration service can be controlled using
+ * sub-addressing. By appending `+tag` to the user part of the address,
+ * the behaviour can be controlled in the following way:
+ *
+ * - `+delayN`: Wait N milliseconds before responding, e.g. `+delay2500` to wait 2.5 s.
+ * - `+invalidlocale`: Return an invalid locale in the user data.
+ * - `+invalidphone`: Return an invalid phone number format in the user data.
+ * - `+invalidsex`: Return invalid sex data in the user data.
+ * - `+invalidtimezone`: Return an invalid timezone in the user data.
+ * - `+modifyemail`: Modify the email address in the user data.
+ *
+ * These can also be combined by separating multiple tags with dashes.
+ * To delay the response and return an invalid timezone, the requester
+ * can send a request for `jane.doe+delay2500-invalidtimezone@example.com`.
+ */
 fun main(args: Array<String>) {
 
     port(getPort())
@@ -18,9 +37,9 @@ fun main(args: Array<String>) {
     val authHeader = getAuth()
 
     get("/", { req, res ->
-        maybeSleep()
         res.type("application/json")
         val email = req.queryParams("email")!!
+        maybeAddDelay(tags(email).singleOrNull { s -> s.matches(Regex("delay\\d+")) })
         val auth = req.headers("X-Auth")!!
         if (auth.equals(authHeader)) {
             newUser(email)
@@ -58,12 +77,8 @@ data class User(
         val createdTime: Date?,
         val timeZone: String?)
 
-fun maybeSleep() {
-    when (fairy.baseProducer().randomInt(100)) {
-        in 0..6 -> Thread.sleep(1000)
-        in 7..9 -> Thread.sleep(2500)
-        else -> {}
-    }
+fun maybeAddDelay(delayTag: String?) {
+    delayTag?.let { Thread.sleep(delayTag!!.substringAfter("delay").toLong()) }
 }
 
 fun getPort(): Int {
@@ -81,67 +96,59 @@ fun <T> random(items: Array<T>): T {
     return items.get(i)
 }
 
-fun sex(): String? {
-    return when (fairy.baseProducer().randomInt(100)) {
-        in 0..14 -> "FEMALE"
-        in 15..29 -> "MALE"
-        in 30..44 -> "UNDISCLOSED"
-        in 45..50 -> """¯\_(ツ)_/¯"""
+fun sex(invalid: Boolean): String? {
+    return if (invalid) """¯\_(ツ)_/¯""" else when (fairy.baseProducer().randomInt(100)) {
+        in 0..24 -> "FEMALE"
+        in 25..49 -> "MALE"
+        in 50..74 -> "UNDISCLOSED"
         else -> null
     }
 }
 
-fun status(): String? {
-    return when (fairy.baseProducer().randomInt(100)) {
-        in 0..14 -> "VERIFIED"
-        in 15..29 -> "BLOCKED"
-        in 30..44 -> "DISABLED"
-        in 45..49 -> "DELETED"
-        in 50..54 -> "UNVERIFIED"
-        in 55..60 -> "ᕕ( ᐛ )ᕗ"
+fun timeZone(invalid: Boolean): String? {
+    return if (invalid) "Not a timezone, obviously" else when (fairy.baseProducer().randomInt(100)) {
+        in 0..49 -> random(timeZones).toString()
         else -> null
     }
 }
 
-fun timeZone(): String? {
-    return when (fairy.baseProducer().randomInt(100)) {
-        in 0..14 -> random(timeZones).toString()
-        in 15..20 -> "Not a timezone, obviously"
+fun locale(invalid: Boolean): String? {
+    return if (invalid) "Not a locale, obviously" else when (fairy.baseProducer().randomInt(100)) {
+        in 0..20 -> random(locales).toString()
         else -> null
     }
 }
 
-fun locale(): String? {
-    return when (fairy.baseProducer().randomInt(100)) {
-        in 0..14 -> random(locales).toString()
-        in 15..20 -> "Not a locale, obviously"
-        else -> null
-    }
+fun email(email: String, modify: Boolean): String {
+    return if (modify) "xxx" + email else email
 }
 
-fun email(email: String): String {
-    return when (fairy.baseProducer().randomInt(100)) {
-        in 0..90 -> email
-        else -> "xxx" + email
-    }
+fun phone(phone: String, invalid: Boolean): String {
+    val validPhone = "+" + phone.replace("""-""", "")
+    return if (invalid) phone else validPhone
+}
+
+fun tags(email: String): List<String> {
+    val local = email.splitBy("@")[0].splitBy("+", limit = 2)
+    if (local.size() < 2) return emptyList()
+    return local[1].splitBy("-")
 }
 
 fun newUser(email: String): User {
     val person = fairy.person()
-    val invalidPhone = person.telephoneNumber()
-    val validPhone = "+" + invalidPhone.replace("""-""", "")
-    val phone = fairy.baseProducer().randomElement(invalidPhone, validPhone)
+    val tags = tags(email)
+    val phone = phone(person.telephoneNumber(), "invalidphone" in tags)
     return User(
-            email(email),
+            email(email, tags.contains("modifyemail")),
             DateTimeFormat.forPattern("yyyy-MM-dd").print(person.dateOfBirth()),
             person.nationalIdentificationNumber(),
             person.username(),
-            sex(),
-            locale(),
+            sex("invalidsex" in tags),
+            locale("invalidlocale" in tags),
             person.fullName(),
             phone,
             phone,
             fairy.company().url(),
             Date.from(Instant.now()),
-            timeZone())
+            timeZone("invalidtimezone" in tags))
 }
