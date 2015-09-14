@@ -10,6 +10,7 @@ import java.time.Instant
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import kotlin.text.Regex
 
 /**
  * Implementation of a user data migration service returning fake data.
@@ -18,7 +19,7 @@ import java.util.TimeZone
  * sub-addressing. By appending `+tag` to the user part of the address,
  * the behaviour can be controlled in the following way:
  *
- * - `+delay`: Wait a between 0 and 2.5 seconds before responding.
+ * - `+delayN`: Wait N milliseconds before responding, e.g. `+delay2500` to wait 2.5 s.
  * - `+invalidlocale`: Return an invalid locale in the user data.
  * - `+invalidphone`: Return an invalid phone number format in the user data.
  * - `+invalidsex`: Return invalid sex data in the user data.
@@ -27,7 +28,7 @@ import java.util.TimeZone
  *
  * These can also be combined by separating multiple tags with dashes.
  * To delay the response and return an invalid timezone, the requester
- * can send a request for `jane.doe+delay-invalidtimezone@example.com`.
+ * can send a request for `jane.doe+delay2500-invalidtimezone@example.com`.
  */
 fun main(args: Array<String>) {
 
@@ -38,7 +39,7 @@ fun main(args: Array<String>) {
     get("/", { req, res ->
         res.type("application/json")
         val email = req.queryParams("email")!!
-        if ("delay" in tags(email)) addRandomDelay()
+        maybeAddDelay(tags(email).singleOrNull { s -> s.matches(Regex("delay\\d+")) })
         val auth = req.headers("X-Auth")!!
         if (auth.equals(authHeader)) {
             newUser(email)
@@ -76,8 +77,8 @@ data class User(
         val createdTime: Date?,
         val timeZone: String?)
 
-fun addRandomDelay() {
-    Thread.sleep(fairy.baseProducer().randomInt(2500).toLong())
+fun maybeAddDelay(delayTag: String?) {
+    delayTag?.let { Thread.sleep(delayTag!!.substringAfter("delay").toLong()) }
 }
 
 fun getPort(): Int {
