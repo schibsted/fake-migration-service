@@ -3,6 +3,7 @@ package com.schibsted.spt.identity.fakemigrationservice
 import com.google.gson.GsonBuilder
 import io.codearte.jfairy.Fairy
 import org.joda.time.format.DateTimeFormat
+import spark.Spark.exception
 import spark.Spark.get
 import spark.SparkBase.port
 import java.text.DateFormat
@@ -25,6 +26,7 @@ import kotlin.text.Regex
  * - `+invalidsex`: Return invalid sex data in the user data.
  * - `+invalidtimezone`: Return an invalid timezone in the user data.
  * - `+modifyemail`: Modify the email address in the user data.
+ * - `+notfound`: Return a 404 Not Found response (will ignore options to return invalid data)
  *
  * These can also be combined by separating multiple tags with dashes.
  * To delay the response and return an invalid timezone, the requester
@@ -38,30 +40,42 @@ fun main(args: Array<String>) {
 
     get("/", { req, res ->
         res.type("application/json")
-        val email = req.queryParams("email")!!
-        maybeAddDelay(tags(email).singleOrNull { s -> s.matches(Regex("delay\\d+")) })
-        val auth = req.headers("X-Auth")!!
-        if (auth.equals(authHeader)) {
-            newUser(email)
-        } else {
-            Error("Bad auth header")
+        val auth = req.headers("X-Auth")
+        if (!authHeader.equals(auth)) {
+            throw UnauthorizedException()
         }
-
+        val email = req.queryParams("email")!!
+        val tags = tags(email)
+        maybeAddDelay(tags.singleOrNull { s -> s.matches(Regex("delay\\d+")) })
+        if ("notfound" in tags) {
+            throw NotFoundException();
+        }
+        newUser(email)
     }, { model -> gson.toJson(model) })
 
     get("/healthcheck", {req, res ->
         res.type("application/json")
         """{"status":"ok"}"""})
 
+    exception(javaClass<UnauthorizedException>(), { e, req, res ->
+        res.status(403)
+        res.body("Missing/invalid auth header")
+    })
+
+    exception(javaClass<NotFoundException>(), { e, req, res ->
+        res.status(404)
+        res.body("User not found")
+    })
+
 }
+
+class UnauthorizedException : RuntimeException() { }
+class NotFoundException : RuntimeException() { }
 
 val gson = GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").create()
 val fairy = Fairy.create()
 val timeZones = TimeZone.getAvailableIDs()
 val locales = Locale.getAvailableLocales()
-
-data class Error(
-        val message: String)
 
 data class User(
         val email: String?,
@@ -139,7 +153,7 @@ fun newUser(email: String): User {
     val tags = tags(email)
     val phone = phone(person.telephoneNumber(), "invalidphone" in tags)
     return User(
-            email(email, tags.contains("modifyemail")),
+            email(email, "modifyemail" in tags),
             DateTimeFormat.forPattern("yyyy-MM-dd").print(person.dateOfBirth()),
             person.nationalIdentificationNumber(),
             person.username(),
