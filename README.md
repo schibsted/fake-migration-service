@@ -27,12 +27,6 @@ These can also be combined by separating multiple tags with dashes.
 To delay the response and return an invalid timezone, the requester
 can send a request for `jane.doe+delay2500-invalidtimezone@example.com`.
 
-## Heroku
-
-Currently running on `michael-stockli` account. 
-
-[https://fast-inlet-7431.herokuapp.com](https://fast-inlet-7431.herokuapp.com/)
-
 ### Deploy
 
 Create a heroku account, download the toolbelt and follow the steps below:
