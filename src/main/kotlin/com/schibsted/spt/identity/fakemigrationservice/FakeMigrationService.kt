@@ -89,7 +89,19 @@ data class User(
         val homePhone: String?,
         val photo: String?,
         val createdTime: Date?,
-        val timeZone: String?)
+        val timeZone: String?,
+        val address: Address?)
+
+data class Address(
+        val streetAddress: String?,
+        val postalCode: String?,
+        val country: String?,
+        val locality: String?,
+        val region: String?,
+        val type: String?,
+        val latitude: Double?,
+        val longitude: Double?,
+        val altitude: Double?)
 
 fun maybeAddDelay(delayTag: String?) {
     delayTag?.let { Thread.sleep(delayTag!!.substringAfter("delay").toLong()) }
@@ -148,10 +160,31 @@ fun tags(email: String): List<String> {
     return local[1].splitBy("-")
 }
 
+fun type(): String? {
+    return when (fairy.baseProducer().randomInt(100)) {
+        in 0..69 -> "HOME"
+        in 70..84 -> "DELIVERY"
+        in 85..94 -> "WORK"
+        else -> null
+    }
+}
+
 fun newUser(email: String): User {
     val person = fairy.person()
     val tags = tags(email)
     val phone = phone(person.telephoneNumber(), "invalidphone" in tags)
+
+    val address = Address(
+            person.getAddress().street() + " " + person.getAddress().streetNumber(),
+            person.getAddress().getPostalCode(),
+            "USA",
+            person.getAddress().getCity(),
+            person.getAddress().getCity(),
+            type(),
+            fairy.baseProducer().randomBetween(-90.0, 90.0),
+            fairy.baseProducer().randomBetween(-180.0, 180.0),
+            fairy.baseProducer().randomBetween(-394.0, 8848.0))
+
     return User(
             email(email, "modifyemail" in tags),
             DateTimeFormat.forPattern("yyyy-MM-dd").print(person.dateOfBirth()),
@@ -164,5 +197,6 @@ fun newUser(email: String): User {
             phone,
             fairy.company().url(),
             Date.from(Instant.now()),
-            timeZone("invalidtimezone" in tags))
+            timeZone("invalidtimezone" in tags),
+            address)
 }
