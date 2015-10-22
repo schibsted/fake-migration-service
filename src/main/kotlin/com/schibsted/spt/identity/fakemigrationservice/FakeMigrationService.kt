@@ -97,10 +97,10 @@ data class Address(
         val country: String?,
         val locality: String?,
         val region: String?,
-        val type: String?,
-        val latitude: Double?,
-        val longitude: Double?,
-        val altitude: Double?)
+        val type: String?)
+//        val latitude: Double?,
+//        val longitude: Double?,
+//        val altitude: Double?)
 
 fun maybeAddDelay(delayTag: String?) {
     delayTag?.let { Thread.sleep(delayTag!!.substringAfter("delay").toLong()) }
@@ -183,10 +183,10 @@ fun createAddress(type: String): Address {
             "USA",
             address.getCity(),
             address.getCity(),
-            type,
-            fairy.baseProducer().randomBetween(-90.0, 90.0),
-            fairy.baseProducer().randomBetween(-180.0, 180.0),
-            fairy.baseProducer().randomBetween(-394.0, 8848.0))
+            type)
+//            fairy.baseProducer().randomBetween(-90.0, 90.0),
+//            fairy.baseProducer().randomBetween(-180.0, 180.0),
+//            fairy.baseProducer().randomBetween(-394.0, 8848.0))
 }
 
 fun newUser(email: String): User {
