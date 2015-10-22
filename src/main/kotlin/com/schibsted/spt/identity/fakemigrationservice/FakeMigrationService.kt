@@ -2,15 +2,14 @@ package com.schibsted.spt.identity.fakemigrationservice
 
 import com.google.gson.GsonBuilder
 import io.codearte.jfairy.Fairy
+import io.codearte.jfairy.producer.person.Person
 import org.joda.time.format.DateTimeFormat
 import spark.Spark.exception
 import spark.Spark.get
 import spark.SparkBase.port
 import java.text.DateFormat
 import java.time.Instant
-import java.util.Date
-import java.util.Locale
-import java.util.TimeZone
+import java.util.*
 import kotlin.text.Regex
 
 /**
@@ -90,7 +89,7 @@ data class User(
         val photo: String?,
         val createdTime: Date?,
         val timeZone: String?,
-        val address: Address?)
+        val addresses: List<Address>?)
 
 data class Address(
         val streetAddress: String?,
@@ -160,30 +159,40 @@ fun tags(email: String): List<String> {
     return local[1].splitBy("-")
 }
 
-fun type(): String? {
-    return when (fairy.baseProducer().randomInt(100)) {
-        in 0..69 -> "HOME"
-        in 70..84 -> "DELIVERY"
-        in 85..94 -> "WORK"
-        else -> null
+fun addressTypes(): List<String> {
+    val types = arrayListOf("HOME", "DELIVERY", "WORK")
+    return types.subList(0, fairy.baseProducer().randomInt(2))
+}
+
+fun createAddresses(types: List<String>): List<Address>? {
+    val addresses = ArrayList<Address>()
+    for (type in addressTypes()) {
+        addresses.add(createAddress(type))
     }
+    if (addresses.isEmpty()) {
+        return null
+    }
+    return addresses
+}
+
+fun createAddress(type: String): Address {
+    val address = fairy.person().getAddress()
+    return Address(
+            address.street() + " " + address.streetNumber(),
+            address.getPostalCode(),
+            "USA",
+            address.getCity(),
+            address.getCity(),
+            type,
+            fairy.baseProducer().randomBetween(-90.0, 90.0),
+            fairy.baseProducer().randomBetween(-180.0, 180.0),
+            fairy.baseProducer().randomBetween(-394.0, 8848.0))
 }
 
 fun newUser(email: String): User {
     val person = fairy.person()
     val tags = tags(email)
     val phone = phone(person.telephoneNumber(), "invalidphone" in tags)
-
-    val address = Address(
-            person.getAddress().street() + " " + person.getAddress().streetNumber(),
-            person.getAddress().getPostalCode(),
-            "USA",
-            person.getAddress().getCity(),
-            person.getAddress().getCity(),
-            type(),
-            fairy.baseProducer().randomBetween(-90.0, 90.0),
-            fairy.baseProducer().randomBetween(-180.0, 180.0),
-            fairy.baseProducer().randomBetween(-394.0, 8848.0))
 
     return User(
             email(email, "modifyemail" in tags),
@@ -198,5 +207,5 @@ fun newUser(email: String): User {
             fairy.company().url(),
             Date.from(Instant.now()),
             timeZone("invalidtimezone" in tags),
-            address)
+            createAddresses(addressTypes()))
 }
