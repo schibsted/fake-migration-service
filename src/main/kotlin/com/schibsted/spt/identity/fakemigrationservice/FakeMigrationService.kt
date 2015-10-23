@@ -175,14 +175,14 @@ fun createAddresses(types: List<String>): List<Address>? {
 
 fun createAddress(type: String): Address {
     val address = fairy.person().getAddress()
-    return Address(
-            address.street() + " " + address.streetNumber() + ", " + address.getPostalCode() + " " + address.getCity() + " " + "USA",
-            address.street() + " " + address.streetNumber(),
-            address.getPostalCode(),
-            "USA",
-            address.getCity(),
-            address.getCity(),
-            type)
+    val street = address.street()
+    val streetNumber = address.streetNumber()
+    val streetAddress = "$street $streetNumber"
+    val postalCode = address.getPostalCode()
+    val city = address.getCity()
+    val country = "USA"
+    val formatted = "$streetAddress, $postalCode $city $country"
+    return Address(formatted, streetAddress, postalCode, country, city, city, type)
 }
 
 fun newUser(email: String): User {
